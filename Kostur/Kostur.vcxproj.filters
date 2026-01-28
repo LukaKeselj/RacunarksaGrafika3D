@@ -62,5 +62,7 @@
     <None Include="Shaders\line3d.frag" />
     <None Include="Shaders\room.vert" />
     <None Include="Shaders\room.frag" />
+    <None Include="Shaders\light.vert" />
+    <None Include="Shaders\light.frag" />
   </ItemGroup>
 </Project>

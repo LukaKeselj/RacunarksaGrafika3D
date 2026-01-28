@@ -27,6 +27,7 @@ AimTrainer::AimTrainer(int width, int height)
     freetypeShaderProgram = createShader("Shaders/freetype.vert", "Shaders/freetype.frag");
     cylinderShaderProgram = createShader("Shaders/sphere3d.vert", "Shaders/sphere3d.frag");
     roomShaderProgram = createShader("Shaders/room.vert", "Shaders/room.frag");
+    lightShaderProgram = createShader("Shaders/light.vert", "Shaders/light.frag");
     
     camera = new Camera(glm::vec3(0.0f, 0.0f, 3.0f));
     glm::vec3 spawnZoneCenter(0.0f, 0.0f, -6.5f);
@@ -51,6 +52,7 @@ AimTrainer::AimTrainer(int width, int height)
     initBuffers();
     initCylinder();
     initRoom();
+    initLight();
     
     startTime = glfwGetTime();
     lastHitTime = startTime;
@@ -91,11 +93,15 @@ AimTrainer::~AimTrainer() {
     glDeleteVertexArrays(1, &roomVAO);
     glDeleteBuffers(1, &roomVBO);
     glDeleteBuffers(1, &roomEBO);
+    glDeleteVertexArrays(1, &lightVAO);
+    glDeleteBuffers(1, &lightVBO);
+    glDeleteBuffers(1, &lightEBO);
     glDeleteProgram(rectShaderProgram);
     glDeleteProgram(textureShaderProgram);
     glDeleteProgram(freetypeShaderProgram);
     glDeleteProgram(cylinderShaderProgram);
     glDeleteProgram(roomShaderProgram);
+    glDeleteProgram(lightShaderProgram);
     glDeleteTextures(1, &studentInfoTexture);
     glDeleteTextures(1, &terroristTexture);
     glDeleteTextures(1, &counterTexture);
@@ -357,6 +363,9 @@ void AimTrainer::render() {
     if (!gameOver) {
         // Draw room environment samo tokom igre
         drawRoom();
+        
+        // Draw ceiling light
+        drawLight();
         
         // Then draw 3D targets (cilindri umesto sfera)
         for (const auto& target : targets) {
@@ -1140,4 +1149,120 @@ bool AimTrainer::raySphereIntersection(const glm::vec3& rayOrigin, const glm::ve
     float discriminant = b * b - 4 * a * c;
     
     return discriminant >= 0.0f;
+}
+
+void AimTrainer::initLight() {
+    // Kreiraj box za lampu na plafonu
+    float lightWidth = 2.0f;
+    float lightHeight = 0.3f;
+    float lightDepth = 2.0f;
+    
+    float hw = lightWidth / 2.0f;
+    float hh = lightHeight / 2.0f;
+    float hd = lightDepth / 2.0f;
+    
+    std::vector<float> vertices = {
+        // Bottom face (emissive)
+        -hw, -hh, -hd,  0.0f, -1.0f, 0.0f,
+         hw, -hh, -hd,  0.0f, -1.0f, 0.0f,
+         hw, -hh,  hd,  0.0f, -1.0f, 0.0f,
+        -hw, -hh,  hd,  0.0f, -1.0f, 0.0f,
+        
+        // Top face
+        -hw, hh, -hd,  0.0f, 1.0f, 0.0f,
+         hw, hh, -hd,  0.0f, 1.0f, 0.0f,
+         hw, hh,  hd,  0.0f, 1.0f, 0.0f,
+        -hw, hh,  hd,  0.0f, 1.0f, 0.0f,
+        
+        // Front
+        -hw, -hh, -hd,  0.0f, 0.0f, -1.0f,
+         hw, -hh, -hd,  0.0f, 0.0f, -1.0f,
+         hw,  hh, -hd,  0.0f, 0.0f, -1.0f,
+        -hw,  hh, -hd,  0.0f, 0.0f, -1.0f,
+        
+        // Back
+        -hw, -hh, hd,  0.0f, 0.0f, 1.0f,
+         hw, -hh, hd,  0.0f, 0.0f, 1.0f,
+         hw,  hh, hd,  0.0f, 0.0f, 1.0f,
+        -hw,  hh, hd,  0.0f, 0.0f, 1.0f,
+        
+        // Left
+        -hw, -hh, -hd,  -1.0f, 0.0f, 0.0f,
+        -hw,  hh, -hd,  -1.0f, 0.0f, 0.0f,
+        -hw,  hh,  hd,  -1.0f, 0.0f, 0.0f,
+        -hw, -hh,  hd,  -1.0f, 0.0f, 0.0f,
+        
+        // Right
+        hw, -hh, -hd,  1.0f, 0.0f, 0.0f,
+        hw,  hh, -hd,  1.0f, 0.0f, 0.0f,
+        hw,  hh,  hd,  1.0f, 0.0f, 0.0f,
+        hw, -hh,  hd,  1.0f, 0.0f, 0.0f,
+    };
+    
+    std::vector<unsigned int> indices = {
+        0, 1, 2, 0, 2, 3,     // Bottom
+        4, 6, 5, 4, 7, 6,     // Top
+        8, 9, 10, 8, 10, 11,  // Front
+        12, 14, 13, 12, 15, 14, // Back
+        16, 17, 18, 16, 18, 19, // Left
+        20, 22, 21, 20, 23, 22  // Right
+    };
+    
+    glGenVertexArrays(1, &lightVAO);
+    glGenBuffers(1, &lightVBO);
+    glGenBuffers(1, &lightEBO);
+    
+    glBindVertexArray(lightVAO);
+    
+    glBindBuffer(GL_ARRAY_BUFFER, lightVBO);
+    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_STATIC_DRAW);
+    
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, lightEBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
+    
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+    
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
+    
+    glBindVertexArray(0);
+    
+    std::cout << "Ceiling light initialized!" << std::endl;
+}
+
+void AimTrainer::drawLight() {
+    glUseProgram(lightShaderProgram);
+    
+    // Pozicija lampe na plafonu (malo ispod plafona)
+    glm::vec3 lightPosition(0.0f, 4.5f, 0.0f);
+    
+    glm::mat4 model = glm::mat4(1.0f);
+    model = glm::translate(model, lightPosition);
+    
+    glm::mat4 view = camera->getViewMatrix();
+    float aspect = static_cast<float>(windowWidth) / static_cast<float>(windowHeight);
+    glm::mat4 projection = camera->getProjectionMatrix(aspect);
+    
+    int modelLoc = glGetUniformLocation(lightShaderProgram, "uModel");
+    int viewLoc = glGetUniformLocation(lightShaderProgram, "uView");
+    int projLoc = glGetUniformLocation(lightShaderProgram, "uProjection");
+    
+    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+    glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
+    glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
+    
+    // Boja svetlosti - toplo bela/žuta
+    glm::vec3 lightColor(1.0f, 0.95f, 0.8f);
+    int colorLoc = glGetUniformLocation(lightShaderProgram, "uLightColor");
+    glUniform3fv(colorLoc, 1, glm::value_ptr(lightColor));
+    
+    // Intenzitet
+    float intensity = 2.0f;
+    int intensityLoc = glGetUniformLocation(lightShaderProgram, "uIntensity");
+    glUniform1f(intensityLoc, intensity);
+    
+    glBindVertexArray(lightVAO);
+    glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
+    glBindVertexArray(0);
 }

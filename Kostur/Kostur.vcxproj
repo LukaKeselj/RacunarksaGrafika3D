@@ -143,6 +143,8 @@
     <None Include="packages.config" />
     <None Include="Shaders\freetype.frag" />
     <None Include="Shaders\freetype.vert" />
+    <None Include="Shaders\light.frag" />
+    <None Include="Shaders\light.vert" />
     <None Include="Shaders\line3d.frag" />
     <None Include="Shaders\line3d.vert" />
     <None Include="Shaders\rect.frag" />

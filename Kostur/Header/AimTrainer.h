@@ -34,11 +34,13 @@ private:
     unsigned int freetypeShaderProgram;
     unsigned int cylinderShaderProgram;
     unsigned int roomShaderProgram;
+    unsigned int lightShaderProgram;
     unsigned int VAO, VBO;
     unsigned int textVAO, textVBO;
     unsigned int textureVAO, textureVBO;
     unsigned int cylinderVAO, cylinderVBO, cylinderEBO;
     unsigned int roomVAO, roomVBO, roomEBO;
+    unsigned int lightVAO, lightVBO, lightEBO;
     unsigned int studentInfoTexture;
     unsigned int terroristTexture;
     unsigned int counterTexture;
@@ -90,10 +92,12 @@ private:
     void initBuffers();
     void initCylinder();
     void initRoom();
+    void initLight();
     void spawnTarget();
     void updateDifficulty();
     void drawCylinder3D(const glm::vec3& position, float radius, float depth, unsigned int texture);
     void drawRoom();
+    void drawLight();
     void drawRect(float x, float y, float width, float height, float r, float g, float b, float alpha = 1.0f);
     void drawTexture(float x, float y, float width, float height, unsigned int texture, float alpha = 1.0f);
     bool isPointInRect(float px, float py, float rx, float ry, float rw, float rh);
