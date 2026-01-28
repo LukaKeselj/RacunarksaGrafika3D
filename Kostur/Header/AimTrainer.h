@@ -2,10 +2,14 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <vector>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 #include "TextRenderer.h"
+#include "Camera.h"
 
 struct Target {
-    float x, y;
+    glm::vec3 position;  // 3D pozicija
     float radius;
     float lifeTime;
     float maxLifeTime;
@@ -29,9 +33,12 @@ private:
     unsigned int textureShaderProgram;
     unsigned int freetypeShaderProgram;
     unsigned int texturedCircleShaderProgram;
+    unsigned int sphere3DShaderProgram;
+    unsigned int gameOverShaderProgram;  // Dedicated Game Over shader
     unsigned int VAO, VBO;
     unsigned int textVAO, textVBO;
     unsigned int textureVAO, textureVBO;
+    unsigned int sphereVAO, sphereVBO, sphereEBO;  // 3D sfera
     unsigned int studentInfoTexture;
     unsigned int backgroundTexture;
     unsigned int terroristTexture;
@@ -41,6 +48,7 @@ private:
     unsigned int akTexture;
     unsigned int uspTexture;
     TextRenderer* textRenderer;
+    Camera* camera;  // 3D kamera
     
     std::vector<Target> targets;
     Button restartButton;
@@ -73,13 +81,21 @@ private:
     double lastShotTime;
     double fireRate;
     
+    bool depthTestEnabled;   // Toggle za depth test
+    bool faceCullingEnabled; // Toggle za face culling
+    bool gameOverPrintedOnce; // Flag za Game Over console output
+    
     void initBuffers();
+    void initSphere();  // Kreiraj 3D sferu
     void spawnTarget();
     void updateDifficulty();
+    void drawSphere3D(const glm::vec3& position, float radius, unsigned int texture);
     void drawCircle(float x, float y, float radius, unsigned int texture);
     void drawRect(float x, float y, float width, float height, float r, float g, float b, float alpha = 1.0f);
     void drawTexture(float x, float y, float width, float height, unsigned int texture, float alpha = 1.0f);
     bool isPointInRect(float px, float py, float rx, float ry, float rw, float rh);
+    bool raySphereIntersection(const glm::vec3& rayOrigin, const glm::vec3& rayDir, 
+                                const glm::vec3& sphereCenter, float sphereRadius);
     
 public:
     AimTrainer(int width, int height);
@@ -91,6 +107,9 @@ public:
     void handleMousePress(double mouseX, double mouseY);
     void handleMouseRelease();
     void setFireMode(FireMode mode);
+    void toggleDepthTest();   // Toggle depth test
+    void toggleFaceCulling(); // Toggle face culling
+    void processMouseMovement(float xoffset, float yoffset);
     void restart();
     bool isGameOver() const { return gameOver; }
     bool shouldExit() const;

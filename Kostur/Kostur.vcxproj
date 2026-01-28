@@ -127,6 +127,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Source\AimTrainer.cpp" />
+    <ClCompile Include="Source\Camera.cpp" />
     <ClCompile Include="Source\Crosshair.cpp" />
     <ClCompile Include="Source\Main.cpp" />
     <ClCompile Include="Source\TextRenderer.cpp" />
@@ -134,6 +135,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Header\AimTrainer.h" />
+    <ClInclude Include="Header\Camera.h" />
     <ClInclude Include="Header\Crosshair.h" />
     <ClInclude Include="Header\stb_image.h" />
     <ClInclude Include="Header\TextRenderer.h" />
@@ -143,8 +145,12 @@
     <None Include="packages.config" />
     <None Include="Shaders\freetype.frag" />
     <None Include="Shaders\freetype.vert" />
+    <None Include="Shaders\gameover.frag" />
+    <None Include="Shaders\gameover.vert" />
     <None Include="Shaders\rect.frag" />
     <None Include="Shaders\rect.vert" />
+    <None Include="Shaders\sphere3d.frag" />
+    <None Include="Shaders\sphere3d.vert" />
     <None Include="Shaders\texture.frag" />
     <None Include="Shaders\texture.vert" />
     <None Include="Shaders\textured_circle.frag" />
@@ -156,6 +162,7 @@
     <Import Project="packages\glew-2.2.0.2.2.0.1\build\native\glew-2.2.0.targets" Condition="Exists('packages\glew-2.2.0.2.2.0.1\build\native\glew-2.2.0.targets')" />
     <Import Project="packages\freetype.redist.2.8.0.1\build\native\freetype.redist.targets" Condition="Exists('packages\freetype.redist.2.8.0.1\build\native\freetype.redist.targets')" />
     <Import Project="packages\freetype.2.8.0.1\build\native\freetype.targets" Condition="Exists('packages\freetype.2.8.0.1\build\native\freetype.targets')" />
+    <Import Project="packages\glm.1.0.3\build\native\glm.targets" Condition="Exists('packages\glm.1.0.3\build\native\glm.targets')" />
   </ImportGroup>
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
@@ -165,5 +172,6 @@
     <Error Condition="!Exists('packages\glew-2.2.0.2.2.0.1\build\native\glew-2.2.0.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\glew-2.2.0.2.2.0.1\build\native\glew-2.2.0.targets'))" />
     <Error Condition="!Exists('packages\freetype.redist.2.8.0.1\build\native\freetype.redist.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\freetype.redist.2.8.0.1\build\native\freetype.redist.targets'))" />
     <Error Condition="!Exists('packages\freetype.2.8.0.1\build\native\freetype.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\freetype.2.8.0.1\build\native\freetype.targets'))" />
+    <Error Condition="!Exists('packages\glm.1.0.3\build\native\glm.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\glm.1.0.3\build\native\glm.targets'))" />
   </Target>
 </Project>
