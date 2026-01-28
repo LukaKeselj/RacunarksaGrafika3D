@@ -21,9 +21,6 @@
     <ClCompile Include="Source\Util.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Crosshair.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Source\TextRenderer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -31,9 +28,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Source\AimTrainer.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\TextRenderer3D.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -47,16 +41,10 @@
     <ClInclude Include="Header\AimTrainer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Header\Crosshair.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Header\TextRenderer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Header\Camera.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Header\TextRenderer3D.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -66,20 +54,10 @@
     <None Include="Shaders\freetype.frag" />
     <None Include="Shaders\texture.vert" />
     <None Include="Shaders\texture.frag" />
-    <None Include="Shaders\textured_circle.vert" />
-    <None Include="Shaders\textured_circle.frag" />
     <None Include="Shaders\rect.vert" />
     <None Include="Shaders\rect.frag" />
     <None Include="Shaders\sphere3d.vert" />
     <None Include="Shaders\sphere3d.frag" />
-    <None Include="Shaders\gameover.vert" />
-    <None Include="Shaders\gameover.frag" />
-    <None Include="Shaders\text3d.vert" />
-    <None Include="Shaders\text3d.frag" />
-    <None Include="Shaders\skybox.vert" />
-    <None Include="Shaders\skybox.frag" />
-    <None Include="Shaders\background.vert" />
-    <None Include="Shaders\background.frag" />
     <None Include="Shaders\line3d.vert" />
     <None Include="Shaders\line3d.frag" />
     <None Include="Shaders\room.vert" />

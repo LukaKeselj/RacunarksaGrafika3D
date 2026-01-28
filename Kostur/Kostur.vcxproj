@@ -128,45 +128,31 @@
   <ItemGroup>
     <ClCompile Include="Source\AimTrainer.cpp" />
     <ClCompile Include="Source\Camera.cpp" />
-    <ClCompile Include="Source\Crosshair.cpp" />
     <ClCompile Include="Source\Main.cpp" />
     <ClCompile Include="Source\TextRenderer.cpp" />
-    <ClCompile Include="Source\TextRenderer3D.cpp" />
     <ClCompile Include="Source\Util.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Header\AimTrainer.h" />
     <ClInclude Include="Header\Camera.h" />
-    <ClInclude Include="Header\Crosshair.h" />
     <ClInclude Include="Header\stb_image.h" />
     <ClInclude Include="Header\TextRenderer.h" />
-    <ClInclude Include="Header\TextRenderer3D.h" />
     <ClInclude Include="Header\Util.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
-    <None Include="Shaders\background.frag" />
-    <None Include="Shaders\background.vert" />
     <None Include="Shaders\freetype.frag" />
     <None Include="Shaders\freetype.vert" />
-    <None Include="Shaders\gameover.frag" />
-    <None Include="Shaders\gameover.vert" />
     <None Include="Shaders\line3d.frag" />
     <None Include="Shaders\line3d.vert" />
     <None Include="Shaders\rect.frag" />
     <None Include="Shaders\rect.vert" />
     <None Include="Shaders\room.frag" />
     <None Include="Shaders\room.vert" />
-    <None Include="Shaders\skybox.frag" />
-    <None Include="Shaders\skybox.vert" />
     <None Include="Shaders\sphere3d.frag" />
     <None Include="Shaders\sphere3d.vert" />
-    <None Include="Shaders\text3d.frag" />
-    <None Include="Shaders\text3d.vert" />
     <None Include="Shaders\texture.frag" />
     <None Include="Shaders\texture.vert" />
-    <None Include="Shaders\textured_circle.frag" />
-    <None Include="Shaders\textured_circle.vert" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

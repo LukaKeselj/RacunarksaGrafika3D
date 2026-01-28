@@ -3,7 +3,6 @@
 
 #include "../Header/Util.h"
 #include "../Header/AimTrainer.h"
-#include "../Header/Crosshair.h"
 
 AimTrainer* game = nullptr;
 bool firstMouse = true;
