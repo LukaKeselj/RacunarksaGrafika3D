@@ -33,6 +33,12 @@ AimTrainer::AimTrainer(int width, int height)
     
     camera = new Camera(glm::vec3(0.0f, 0.0f, 3.0f));
     
+    // Postavi kameru da gleda prema centru spawn zone meta
+    // Meta se spawuju u: x: [-3, 3], y: [-2, 2], z: [-5, -8]
+    // Centar spawn zone: (0, 0, -6.5)
+    glm::vec3 spawnZoneCenter(0.0f, 0.0f, -6.5f);
+    camera->lookAt(spawnZoneCenter);
+    
     textRenderer = new TextRenderer(freetypeShaderProgram, windowWidth, windowHeight);
     if (!textRenderer->loadFont("C:/Windows/Fonts/arial.ttf", 48)) {
         std::cout << "Warning: Failed to load Arial font" << std::endl;
@@ -166,11 +172,31 @@ void AimTrainer::spawnTarget() {
     Target target;
     target.radius = 1.0f;
     
-    float x = -3.0f + static_cast<float>(rand()) / RAND_MAX * 6.0f;
-    float y = -2.0f + static_cast<float>(rand()) / RAND_MAX * 4.0f;
-    float z = -5.0f - static_cast<float>(rand()) / RAND_MAX * 3.0f;
+    // Spawnovaj mete unutar FOV-a kamere
+    // Generišemo poziciju relativno prema pravcu kamere
     
-    target.position = glm::vec3(x, y, z);
+    glm::vec3 cameraPos = camera->getPosition();
+    glm::vec3 cameraFront = camera->getFront();
+    glm::vec3 cameraRight = camera->getRight();
+    glm::vec3 cameraUp = camera->getUp();
+    
+    // Udaljenost mete od kamere
+    float distance = 5.0f + static_cast<float>(rand()) / RAND_MAX * 5.0f; // 5-10 metara
+    
+    // Random offset u horizontalnom i vertikalnom pravcu
+    // Ograni?eno na FOV kamere (~45 stepeni)
+    float maxOffset = 0.4f; // Ovo ?e držati mete unutar ve?eg dela FOV-a
+    float horizontalOffset = (static_cast<float>(rand()) / RAND_MAX - 0.5f) * 2.0f * maxOffset;
+    float verticalOffset = (static_cast<float>(rand()) / RAND_MAX - 0.5f) * 2.0f * maxOffset;
+    
+    // Izra?unaj poziciju mete
+    glm::vec3 targetDirection = glm::normalize(
+        cameraFront + 
+        cameraRight * horizontalOffset + 
+        cameraUp * verticalOffset
+    );
+    
+    target.position = cameraPos + targetDirection * distance;
     
     target.maxLifeTime = (2.0f + static_cast<float>(rand()) / RAND_MAX * 2.0f) * targetLifeTimeMultiplier;
     target.lifeTime = target.maxLifeTime;
@@ -180,7 +206,7 @@ void AimTrainer::spawnTarget() {
     
     targets.push_back(target);
     
-    std::cout << "Target spawned at: (" << x << ", " << y << ", " << z << ")" << std::endl;
+    std::cout << "Target spawned at: (" << target.position.x << ", " << target.position.y << ", " << target.position.z << ")" << std::endl;
 }
 
 void AimTrainer::restart() {

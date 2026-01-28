@@ -88,3 +88,24 @@ glm::vec3 Camera::getRayDirection(float mouseX, float mouseY, int screenWidth, i
     
     return rayWorld;
 }
+
+void Camera::lookAt(const glm::vec3& target) {
+    // Izra?unaj vektor od kamere prema target-u
+    glm::vec3 direction = glm::normalize(target - position);
+    
+    // Izra?unaj yaw i pitch iz direction vektora
+    // yaw = arctan(direction.z / direction.x)
+    // pitch = arcsin(direction.y)
+    
+    yaw = glm::degrees(atan2(direction.z, direction.x));
+    pitch = glm::degrees(asin(direction.y));
+    
+    // Ograni?i pitch da ne bude van opsega
+    if (pitch > 89.0f)
+        pitch = 89.0f;
+    if (pitch < -89.0f)
+        pitch = -89.0f;
+    
+    // Ažuriraj front, right, i up vektore
+    updateCameraVectors();
+}

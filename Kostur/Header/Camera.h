@@ -46,6 +46,9 @@ public:
     glm::vec3 getUp() const { return up; }
     float getZoom() const { return zoom; }
     
+    // Za postavljanje kamere da gleda prema odre?enoj ta?ki
+    void lookAt(const glm::vec3& target);
+    
     // Za raycasting (3D picking)
     glm::vec3 getRayDirection(float mouseX, float mouseY, int screenWidth, int screenHeight) const;
 };
