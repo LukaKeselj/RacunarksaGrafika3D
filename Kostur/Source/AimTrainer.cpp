@@ -1,6 +1,5 @@
 #include "../Header/AimTrainer.h"
 #include "../Header/Util.h"
-#include "../Header/TextRenderer3D.h"
 #include <cmath>
 #include <cstdlib>
 #include <ctime>
@@ -16,7 +15,7 @@ AimTrainer::AimTrainer(int width, int height)
       targetLifeTimeMultiplier(1.0f), minTargetLifeTime(0.4f),
       windowWidth(width), windowHeight(height), hitCount(0), totalHitTime(0.0),
       lastHitTime(0.0), gameOverTime(0.0), survivalTime(0.0), avgHitSpeed(0.0),
-      textRenderer(nullptr), textRenderer3D(nullptr), camera(nullptr), exitRequested(false), totalClicks(0),
+      textRenderer(nullptr), camera(nullptr), exitRequested(false), totalClicks(0),
       fireMode(FireMode::USP), isMousePressed(false), lastShotTime(0.0), fireRate(0.1),
       depthTestEnabled(true), faceCullingEnabled(true), gameOverPrintedOnce(false),
       lastRecoilTime(0.0), recoilAmount(0.0f), recoilRecoverySpeed(8.0f)
@@ -26,19 +25,10 @@ AimTrainer::AimTrainer(int width, int height)
     rectShaderProgram = createShader("Shaders/rect.vert", "Shaders/rect.frag");
     textureShaderProgram = createShader("Shaders/texture.vert", "Shaders/texture.frag");
     freetypeShaderProgram = createShader("Shaders/freetype.vert", "Shaders/freetype.frag");
-    text3DShaderProgram = createShader("Shaders/text3d.vert", "Shaders/text3d.frag");
-    texturedCircleShaderProgram = createShader("Shaders/textured_circle.vert", "Shaders/textured_circle.frag");
-    sphere3DShaderProgram = createShader("Shaders/sphere3d.vert", "Shaders/sphere3d.frag");
-    gameOverShaderProgram = createShader("Shaders/gameover.vert", "Shaders/gameover.frag");
+    cylinderShaderProgram = createShader("Shaders/sphere3d.vert", "Shaders/sphere3d.frag");
     roomShaderProgram = createShader("Shaders/room.vert", "Shaders/room.frag");
     
-    std::cout << "3D Text Shader Program ID: " << text3DShaderProgram << std::endl;
-    
     camera = new Camera(glm::vec3(0.0f, 0.0f, 3.0f));
-    
-    // Postavi kameru da gleda prema centru spawn zone meta
-    // Meta se spawuju u: x: [-3, 3], y: [-2, 2], z: [-5, -8]
-    // Centar spawn zone: (0, 0, -6.5)
     glm::vec3 spawnZoneCenter(0.0f, 0.0f, -6.5f);
     camera->lookAt(spawnZoneCenter);
     
@@ -47,15 +37,7 @@ AimTrainer::AimTrainer(int width, int height)
         std::cout << "Warning: Failed to load Arial font" << std::endl;
     }
     
-    textRenderer3D = new TextRenderer3D(text3DShaderProgram);
-    if (!textRenderer3D->loadFont("C:/Windows/Fonts/arial.ttf", 48)) {
-        std::cout << "Warning: Failed to load Arial font for 3D" << std::endl;
-    } else {
-        std::cout << "3D Text Renderer initialized successfully!" << std::endl;
-    }
-    
     studentInfoTexture = loadImageToTexture("Resources/indeks.png");
-    backgroundTexture = loadImageToTexture("Resources/mirage.png");
     terroristTexture = loadImageToTexture("Resources/terrorist.png");
     counterTexture = loadImageToTexture("Resources/counter.png");
     heartTexture = loadImageToTexture("Resources/heart.png");
@@ -65,29 +47,8 @@ AimTrainer::AimTrainer(int width, int height)
     wallTexture = loadImageToTexture("Resources/smooth-white-brick-wall.jpg");
     floorTexture = loadImageToTexture("Resources/floor.jpg");
     ceilingTexture = loadImageToTexture("Resources/ceiling.png");
-    
-    std::cout << "=== Texture Loading ===" << std::endl;
-    std::cout << "Wall texture ID: " << wallTexture << std::endl;
-    if (wallTexture == 0) {
-        std::cout << "ERROR: Wall texture failed to load!" << std::endl;
-    } else {
-        std::cout << "Wall texture loaded successfully!" << std::endl;
-    }
-    std::cout << "Floor texture ID: " << floorTexture << std::endl;
-    if (floorTexture == 0) {
-        std::cout << "ERROR: Floor texture failed to load!" << std::endl;
-    } else {
-        std::cout << "Floor texture loaded successfully!" << std::endl;
-    }
-    std::cout << "Ceiling texture ID: " << ceilingTexture << std::endl;
-    if (ceilingTexture == 0) {
-        std::cout << "ERROR: Ceiling texture failed to load!" << std::endl;
-    } else {
-        std::cout << "Ceiling texture loaded successfully!" << std::endl;
-    }
 
     initBuffers();
-    initSphere();
     initCylinder();
     initRoom();
     
@@ -111,8 +72,6 @@ AimTrainer::AimTrainer(int width, int height)
     
     std::cout << "=== 3D AIM TRAINER ===" << std::endl;
     std::cout << "Controls:" << std::endl;
-    std::cout << "  D - Toggle Depth Test" << std::endl;
-    std::cout << "  F - Toggle Face Culling" << std::endl;
     std::cout << "  1 - AK-47 (Full-Auto)" << std::endl;
     std::cout << "  2 - USP-S (Semi-Auto)" << std::endl;
     std::cout << "  R - Restart (when game over)" << std::endl;
@@ -126,9 +85,6 @@ AimTrainer::~AimTrainer() {
     glDeleteBuffers(1, &textVBO);
     glDeleteVertexArrays(1, &textureVAO);
     glDeleteBuffers(1, &textureVBO);
-    glDeleteVertexArrays(1, &sphereVAO);
-    glDeleteBuffers(1, &sphereVBO);
-    glDeleteBuffers(1, &sphereEBO);
     glDeleteVertexArrays(1, &cylinderVAO);
     glDeleteBuffers(1, &cylinderVBO);
     glDeleteBuffers(1, &cylinderEBO);
@@ -138,13 +94,9 @@ AimTrainer::~AimTrainer() {
     glDeleteProgram(rectShaderProgram);
     glDeleteProgram(textureShaderProgram);
     glDeleteProgram(freetypeShaderProgram);
-    glDeleteProgram(text3DShaderProgram);
-    glDeleteProgram(texturedCircleShaderProgram);
-    glDeleteProgram(sphere3DShaderProgram);
-    glDeleteProgram(gameOverShaderProgram);
+    glDeleteProgram(cylinderShaderProgram);
     glDeleteProgram(roomShaderProgram);
     glDeleteTextures(1, &studentInfoTexture);
-    glDeleteTextures(1, &backgroundTexture);
     glDeleteTextures(1, &terroristTexture);
     glDeleteTextures(1, &counterTexture);
     glDeleteTextures(1, &heartTexture);
@@ -155,7 +107,6 @@ AimTrainer::~AimTrainer() {
     glDeleteTextures(1, &floorTexture);
     glDeleteTextures(1, &ceilingTexture);
     if (textRenderer) delete textRenderer;
-    if (textRenderer3D) delete textRenderer3D;
     if (camera) delete camera;
 }
 
@@ -835,113 +786,6 @@ bool AimTrainer::isPointInRect(float px, float py, float rx, float ry, float rw,
     return px >= rx && px <= rx + rw && py >= ry && py <= ry + rh;
 }
 
-void AimTrainer::initSphere() {
-    const int segments = 32;
-    const int rings = 16;
-    std::vector<float> vertices;
-    std::vector<unsigned int> indices;
-    
-    for (int ring = 0; ring <= rings; ring++) {
-        float phi = glm::pi<float>() * static_cast<float>(ring) / static_cast<float>(rings);
-        for (int seg = 0; seg <= segments; seg++) {
-            float theta = 2.0f * glm::pi<float>() * static_cast<float>(seg) / static_cast<float>(segments);
-            
-            float x = std::sin(phi) * std::cos(theta);
-            float y = std::cos(phi);
-            float z = std::sin(phi) * std::sin(theta);
-            
-            float u = static_cast<float>(seg) / static_cast<float>(segments);
-            float v = static_cast<float>(ring) / static_cast<float>(rings);
-            
-            vertices.push_back(x);
-            vertices.push_back(y);
-            vertices.push_back(z);
-            vertices.push_back(x);
-            vertices.push_back(y);
-            vertices.push_back(z);
-            vertices.push_back(u);
-            vertices.push_back(v);
-        }
-    }
-    
-    for (int ring = 0; ring < rings; ring++) {
-        for (int seg = 0; seg < segments; seg++) {
-            int current = ring * (segments + 1) + seg;
-            int next = current + segments + 1;
-            
-            indices.push_back(current);
-            indices.push_back(next);
-            indices.push_back(current + 1);
-            
-            indices.push_back(current + 1);
-            indices.push_back(next);
-            indices.push_back(next + 1);
-        }
-    }
-    
-    glGenVertexArrays(1, &sphereVAO);
-    glGenBuffers(1, &sphereVBO);
-    glGenBuffers(1, &sphereEBO);
-    
-    glBindVertexArray(sphereVAO);
-    
-    glBindBuffer(GL_ARRAY_BUFFER, sphereVBO);
-    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_STATIC_DRAW);
-    
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, sphereEBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
-    
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
-    
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
-    glEnableVertexAttribArray(1);
-    
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
-    glEnableVertexAttribArray(2);
-    
-    glBindVertexArray(0);
-    
-    std::cout << "3D Sphere initialized with " << indices.size() / 3 << " triangles" << std::endl;
-}
-
-void AimTrainer::drawSphere3D(const glm::vec3& position, float radius, unsigned int texture) {
-    glUseProgram(sphere3DShaderProgram);
-    
-    glm::mat4 model = glm::mat4(1.0f);
-    model = glm::translate(model, position);
-    model = glm::scale(model, glm::vec3(radius));
-    
-    glm::mat4 view = camera->getViewMatrix();
-    
-    float aspect = static_cast<float>(windowWidth) / static_cast<float>(windowHeight);
-    glm::mat4 projection = camera->getProjectionMatrix(aspect);
-    
-    int modelLoc = glGetUniformLocation(sphere3DShaderProgram, "uModel");
-    int viewLoc = glGetUniformLocation(sphere3DShaderProgram, "uView");
-    int projLoc = glGetUniformLocation(sphere3DShaderProgram, "uProjection");
-    
-    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-    glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
-    glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
-    
-    glm::vec3 lightPos(5.0f, 5.0f, 5.0f);
-    int lightPosLoc = glGetUniformLocation(sphere3DShaderProgram, "uLightPos");
-    glUniform3fv(lightPosLoc, 1, glm::value_ptr(lightPos));
-    
-    int viewPosLoc = glGetUniformLocation(sphere3DShaderProgram, "uViewPos");
-    glUniform3fv(viewPosLoc, 1, glm::value_ptr(camera->getPosition()));
-    
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, texture);
-    int texLoc = glGetUniformLocation(sphere3DShaderProgram, "uTexture");
-    glUniform1i(texLoc, 0);
-    
-    glBindVertexArray(sphereVAO);
-    glDrawElements(GL_TRIANGLES, (32 * 16 * 6), GL_UNSIGNED_INT, 0);
-    glBindVertexArray(0);
-}
-
 void AimTrainer::initCylinder() {
     const int segments = 32;
     float radius = 1.0f;
@@ -1062,13 +906,12 @@ void AimTrainer::initCylinder() {
 }
 
 void AimTrainer::drawCylinder3D(const glm::vec3& position, float radius, float depth, unsigned int texture) {
-    glUseProgram(sphere3DShaderProgram);
+    glUseProgram(cylinderShaderProgram);
     
     // Cilindar uvek gleda ka kameri (billboard effect)
     glm::vec3 cameraPos = camera->getPosition();
     glm::vec3 direction = glm::normalize(cameraPos - position);
     
-    // Kalkuliši rotaciju da gleda prema kameri
     glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
     glm::vec3 right = glm::normalize(glm::cross(up, direction));
     glm::vec3 newUp = glm::cross(direction, right);
@@ -1076,7 +919,6 @@ void AimTrainer::drawCylinder3D(const glm::vec3& position, float radius, float d
     glm::mat4 model = glm::mat4(1.0f);
     model = glm::translate(model, position);
     
-    // Kreiraj rotation matrix da gleda ka kameri
     glm::mat4 rotation = glm::mat4(1.0f);
     rotation[0] = glm::vec4(right, 0.0f);
     rotation[1] = glm::vec4(newUp, 0.0f);
@@ -1089,32 +931,31 @@ void AimTrainer::drawCylinder3D(const glm::vec3& position, float radius, float d
     float aspect = static_cast<float>(windowWidth) / static_cast<float>(windowHeight);
     glm::mat4 projection = camera->getProjectionMatrix(aspect);
     
-    int modelLoc = glGetUniformLocation(sphere3DShaderProgram, "uModel");
-    int viewLoc = glGetUniformLocation(sphere3DShaderProgram, "uView");
-    int projLoc = glGetUniformLocation(sphere3DShaderProgram, "uProjection");
+    int modelLoc = glGetUniformLocation(cylinderShaderProgram, "uModel");
+    int viewLoc = glGetUniformLocation(cylinderShaderProgram, "uView");
+    int projLoc = glGetUniformLocation(cylinderShaderProgram, "uProjection");
     
     glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
     glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
     glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
     
     glm::vec3 lightPos(0.0f, 4.0f, 0.0f);
-    int lightPosLoc = glGetUniformLocation(sphere3DShaderProgram, "uLightPos");
+    int lightPosLoc = glGetUniformLocation(cylinderShaderProgram, "uLightPos");
     glUniform3fv(lightPosLoc, 1, glm::value_ptr(lightPos));
     
-    int viewPosLoc = glGetUniformLocation(sphere3DShaderProgram, "uViewPos");
+    int viewPosLoc = glGetUniformLocation(cylinderShaderProgram, "uViewPos");
     glUniform3fv(viewPosLoc, 1, glm::value_ptr(camera->getPosition()));
     
     float currentTime = static_cast<float>(glfwGetTime());
-    int timeLoc = glGetUniformLocation(sphere3DShaderProgram, "uTime");
+    int timeLoc = glGetUniformLocation(cylinderShaderProgram, "uTime");
     glUniform1f(timeLoc, currentTime);
     
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, texture);
-    int texLoc = glGetUniformLocation(sphere3DShaderProgram, "uTexture");
+    int texLoc = glGetUniformLocation(cylinderShaderProgram, "uTexture");
     glUniform1i(texLoc, 0);
     
     glBindVertexArray(cylinderVAO);
-    // Front face (32 triangles) + Back face (32 triangles) + Side faces (32*2 triangles) = 32 + 32 + 64 = 128 triangles = 384 indices
     glDrawElements(GL_TRIANGLES, 32 * 3 + 32 * 3 + 32 * 6, GL_UNSIGNED_INT, 0);
     glBindVertexArray(0);
 }
@@ -1227,15 +1068,6 @@ void AimTrainer::drawRoom() {
     int viewPosLoc = glGetUniformLocation(roomShaderProgram, "uViewPos");
     int texLoc = glGetUniformLocation(roomShaderProgram, "uWallTexture");
     
-    static bool debugPrinted = false;
-    if (!debugPrinted) {
-        std::cout << "=== Room Shader Uniforms ===" << std::endl;
-        std::cout << "Wall texture ID: " << wallTexture << std::endl;
-        std::cout << "Floor texture ID: " << floorTexture << std::endl;
-        std::cout << "Ceiling texture ID: " << ceilingTexture << std::endl;
-        debugPrinted = true;
-    }
-    
     glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
     glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
     
@@ -1248,7 +1080,6 @@ void AimTrainer::drawRoom() {
     
     glBindVertexArray(roomVAO);
     
-    // Svi zidovi - wall.png
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, wallTexture);
     glUniform1i(texLoc, 0);
@@ -1261,12 +1092,10 @@ void AimTrainer::drawRoom() {
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void*)(12 * sizeof(unsigned int)));
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void*)(18 * sizeof(unsigned int)));
     
-    // Pod - floor.jpg
     glBindTexture(GL_TEXTURE_2D, floorTexture);
     glUniform1i(texLoc, 0);
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void*)(24 * sizeof(unsigned int)));
     
-    // Plafon - ceiling.png
     glBindTexture(GL_TEXTURE_2D, ceilingTexture);
     glUniform1i(texLoc, 0);
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void*)(30 * sizeof(unsigned int)));
