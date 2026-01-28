@@ -94,6 +94,11 @@ private:
     bool faceCullingEnabled; // Toggle za face culling
     bool gameOverPrintedOnce; // Flag za Game Over console output
     
+    // Crosshair recoil animation
+    double lastRecoilTime;
+    float recoilAmount;
+    float recoilRecoverySpeed;
+    
     void initBuffers();
     void initSphere();
     void initCylinder();

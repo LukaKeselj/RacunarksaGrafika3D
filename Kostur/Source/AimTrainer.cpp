@@ -18,7 +18,8 @@ AimTrainer::AimTrainer(int width, int height)
       lastHitTime(0.0), gameOverTime(0.0), survivalTime(0.0), avgHitSpeed(0.0),
       textRenderer(nullptr), textRenderer3D(nullptr), camera(nullptr), exitRequested(false), totalClicks(0),
       fireMode(FireMode::USP), isMousePressed(false), lastShotTime(0.0), fireRate(0.1),
-      depthTestEnabled(true), faceCullingEnabled(true), gameOverPrintedOnce(false)
+      depthTestEnabled(true), faceCullingEnabled(true), gameOverPrintedOnce(false),
+      lastRecoilTime(0.0), recoilAmount(0.0f), recoilRecoverySpeed(8.0f)
 {
     srand(static_cast<unsigned int>(time(nullptr)));
     
@@ -61,7 +62,7 @@ AimTrainer::AimTrainer(int width, int height)
     emptyHeartTexture = loadImageToTexture("Resources/empty-heart.png");
     akTexture = loadImageToTexture("Resources/ak.png");
     uspTexture = loadImageToTexture("Resources/usp.png");
-    wallTexture = loadImageToTexture("Resources/wall.png");
+    wallTexture = loadImageToTexture("Resources/smooth-white-brick-wall.jpg");
     floorTexture = loadImageToTexture("Resources/floor.jpg");
     ceilingTexture = loadImageToTexture("Resources/ceiling.png");
     
@@ -649,20 +650,40 @@ void AimTrainer::render() {
         
         float centerX = windowWidth / 2.0f;
         float centerY = windowHeight / 2.0f;
-        float crosshairSize = 30.0f;
-        float crosshairThickness = 6.0f;
-        float crosshairGap = 12.0f;
+        
+        // Update recoil amount (decay over time)
+        double currentTime = glfwGetTime();
+        double timeSinceRecoil = currentTime - lastRecoilTime;
+        if (recoilAmount > 0.0f) {
+            recoilAmount -= recoilRecoverySpeed * static_cast<float>(timeSinceRecoil);
+            if (recoilAmount < 0.0f) recoilAmount = 0.0f;
+            lastRecoilTime = currentTime;
+        }
+        
+        // Apply recoil to crosshair expansion (no pulsating)
+        float recoilExpansion = 1.0f + recoilAmount;
+        
+        // Crosshair parameters - shorter lines, thicker, smaller gap
+        float crosshairSize = 18.0f * recoilExpansion;      // Shorter lines (was 25)
+        float crosshairThickness = 4.0f;                     // Thicker (was 3)
+        float crosshairGap = 6.0f * recoilExpansion;        // Smaller gap (was 10)
+        
+        // Solid green color - brighter when recoiling
+        float greenIntensity = 0.8f + recoilAmount * 0.2f;
+        if (greenIntensity > 1.0f) greenIntensity = 1.0f;
         
         // Left line
-        drawRect(centerX - crosshairSize - crosshairGap, centerY - crosshairThickness/2, crosshairSize, crosshairThickness, 0.0f, 1.0f, 0.0f, 1.0f);
+        drawRect(centerX - crosshairSize - crosshairGap, centerY - crosshairThickness/2, 
+                 crosshairSize, crosshairThickness, 0.0f, greenIntensity, 0.0f, 0.95f);
         // Right line
-        drawRect(centerX + crosshairGap, centerY - crosshairThickness/2, crosshairSize, crosshairThickness, 0.0f, 1.0f, 0.0f, 1.0f);
+        drawRect(centerX + crosshairGap, centerY - crosshairThickness/2, 
+                 crosshairSize, crosshairThickness, 0.0f, greenIntensity, 0.0f, 0.95f);
         // Top line
-        drawRect(centerX - crosshairThickness/2, centerY - crosshairSize - crosshairGap, crosshairThickness, crosshairSize, 0.0f, 1.0f, 0.0f, 1.0f);
+        drawRect(centerX - crosshairThickness/2, centerY - crosshairSize - crosshairGap, 
+                 crosshairThickness, crosshairSize, 0.0f, greenIntensity, 0.0f, 0.95f);
         // Bottom line
-        drawRect(centerX - crosshairThickness/2, centerY + crosshairGap, crosshairThickness, crosshairSize, 0.0f, 1.0f, 0.0f, 1.0f);
-        // Center dot
-        drawRect(centerX - 4, centerY - 4, 8, 8, 1.0f, 0.0f, 0.0f, 1.0f);
+        drawRect(centerX - crosshairThickness/2, centerY + crosshairGap, 
+                 crosshairThickness, crosshairSize, 0.0f, greenIntensity, 0.0f, 0.95f);
         
         if (depthTestEnabled) glEnable(GL_DEPTH_TEST);
         if (faceCullingEnabled) glEnable(GL_CULL_FACE);
@@ -757,6 +778,10 @@ void AimTrainer::handleMouseClick(double mouseX, double mouseY) {
     }
     
     totalClicks++;
+    
+    // Trigger crosshair recoil animation
+    lastRecoilTime = glfwGetTime();
+    recoilAmount = (fireMode == FireMode::AK47) ? 1.5f : 1.0f;  // AK has more recoil
     
     double currentTime = glfwGetTime();
     
