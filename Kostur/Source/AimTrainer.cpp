@@ -8,6 +8,7 @@
 #include <iostream>
 #include <sstream>
 #include <iomanip>
+#include <vector>
 
 AimTrainer::AimTrainer(int width, int height) 
     : score(0), lives(3), maxLives(3), gameOver(false), spawnTimer(0.0f), 
@@ -28,6 +29,7 @@ AimTrainer::AimTrainer(int width, int height)
     texturedCircleShaderProgram = createShader("Shaders/textured_circle.vert", "Shaders/textured_circle.frag");
     sphere3DShaderProgram = createShader("Shaders/sphere3d.vert", "Shaders/sphere3d.frag");
     gameOverShaderProgram = createShader("Shaders/gameover.vert", "Shaders/gameover.frag");
+    roomShaderProgram = createShader("Shaders/room.vert", "Shaders/room.frag");
     
     std::cout << "3D Text Shader Program ID: " << text3DShaderProgram << std::endl;
     
@@ -59,9 +61,34 @@ AimTrainer::AimTrainer(int width, int height)
     emptyHeartTexture = loadImageToTexture("Resources/empty-heart.png");
     akTexture = loadImageToTexture("Resources/ak.png");
     uspTexture = loadImageToTexture("Resources/usp.png");
+    wallTexture = loadImageToTexture("Resources/wall.png");
+    floorTexture = loadImageToTexture("Resources/floor.jpg");
+    ceilingTexture = loadImageToTexture("Resources/ceiling.png");
     
+    std::cout << "=== Texture Loading ===" << std::endl;
+    std::cout << "Wall texture ID: " << wallTexture << std::endl;
+    if (wallTexture == 0) {
+        std::cout << "ERROR: Wall texture failed to load!" << std::endl;
+    } else {
+        std::cout << "Wall texture loaded successfully!" << std::endl;
+    }
+    std::cout << "Floor texture ID: " << floorTexture << std::endl;
+    if (floorTexture == 0) {
+        std::cout << "ERROR: Floor texture failed to load!" << std::endl;
+    } else {
+        std::cout << "Floor texture loaded successfully!" << std::endl;
+    }
+    std::cout << "Ceiling texture ID: " << ceilingTexture << std::endl;
+    if (ceilingTexture == 0) {
+        std::cout << "ERROR: Ceiling texture failed to load!" << std::endl;
+    } else {
+        std::cout << "Ceiling texture loaded successfully!" << std::endl;
+    }
+
     initBuffers();
     initSphere();
+    initCylinder();
+    initRoom();
     
     startTime = glfwGetTime();
     lastHitTime = startTime;
@@ -101,6 +128,12 @@ AimTrainer::~AimTrainer() {
     glDeleteVertexArrays(1, &sphereVAO);
     glDeleteBuffers(1, &sphereVBO);
     glDeleteBuffers(1, &sphereEBO);
+    glDeleteVertexArrays(1, &cylinderVAO);
+    glDeleteBuffers(1, &cylinderVBO);
+    glDeleteBuffers(1, &cylinderEBO);
+    glDeleteVertexArrays(1, &roomVAO);
+    glDeleteBuffers(1, &roomVBO);
+    glDeleteBuffers(1, &roomEBO);
     glDeleteProgram(rectShaderProgram);
     glDeleteProgram(textureShaderProgram);
     glDeleteProgram(freetypeShaderProgram);
@@ -108,6 +141,7 @@ AimTrainer::~AimTrainer() {
     glDeleteProgram(texturedCircleShaderProgram);
     glDeleteProgram(sphere3DShaderProgram);
     glDeleteProgram(gameOverShaderProgram);
+    glDeleteProgram(roomShaderProgram);
     glDeleteTextures(1, &studentInfoTexture);
     glDeleteTextures(1, &backgroundTexture);
     glDeleteTextures(1, &terroristTexture);
@@ -116,6 +150,9 @@ AimTrainer::~AimTrainer() {
     glDeleteTextures(1, &emptyHeartTexture);
     glDeleteTextures(1, &akTexture);
     glDeleteTextures(1, &uspTexture);
+    glDeleteTextures(1, &wallTexture);
+    glDeleteTextures(1, &floorTexture);
+    glDeleteTextures(1, &ceilingTexture);
     if (textRenderer) delete textRenderer;
     if (textRenderer3D) delete textRenderer3D;
     if (camera) delete camera;
@@ -172,41 +209,101 @@ void AimTrainer::spawnTarget() {
     Target target;
     target.radius = 1.0f;
     
-    // Spawnovaj mete unutar FOV-a kamere
-    // Generišemo poziciju relativno prema pravcu kamere
+    // Dimenzije prostorije
+    float roomWidth = 20.0f;
+    float roomHeight = 10.0f;
+    float roomDepth = 20.0f;
+    
+    float halfWidth = roomWidth / 2.0f;
+    float halfHeight = roomHeight / 2.0f;
+    float halfDepth = roomDepth / 2.0f;
+    
+    // Margine da se mete sigurno vide cele
+    float marginX = target.radius * 3.5f;
+    float marginY = target.radius * 3.5f;
     
     glm::vec3 cameraPos = camera->getPosition();
     glm::vec3 cameraFront = camera->getFront();
     glm::vec3 cameraRight = camera->getRight();
     glm::vec3 cameraUp = camera->getUp();
     
-    // Udaljenost mete od kamere
-    float distance = 5.0f + static_cast<float>(rand()) / RAND_MAX * 5.0f; // 5-10 metara
+    // Pokušaj maksimalno 20 puta da na?eš dobru poziciju u FOV-u
+    int maxAttempts = 20;
+    int attempt = 0;
+    bool foundValidPosition = false;
     
-    // Random offset u horizontalnom i vertikalnom pravcu
-    // Ograni?eno na FOV kamere (~45 stepeni)
-    float maxOffset = 0.4f; // Ovo ?e držati mete unutar ve?eg dela FOV-a
-    float horizontalOffset = (static_cast<float>(rand()) / RAND_MAX - 0.5f) * 2.0f * maxOffset;
-    float verticalOffset = (static_cast<float>(rand()) / RAND_MAX - 0.5f) * 2.0f * maxOffset;
+    glm::vec3 targetPos;
     
-    // Izra?unaj poziciju mete
-    glm::vec3 targetDirection = glm::normalize(
-        cameraFront + 
-        cameraRight * horizontalOffset + 
-        cameraUp * verticalOffset
-    );
+    while (!foundValidPosition && attempt < maxAttempts) {
+        attempt++;
+        
+        // Odaberi random zid (0=front, 1=back, 2=left, 3=right)
+        int wallChoice = rand() % 4;
+        
+        switch (wallChoice) {
+            case 0: // Front wall (z = -halfDepth)
+                targetPos.x = (static_cast<float>(rand()) / RAND_MAX * 2.0f - 1.0f) * (halfWidth - marginX);
+                targetPos.y = (static_cast<float>(rand()) / RAND_MAX * 2.0f - 1.0f) * (halfHeight - marginY);
+                targetPos.z = -halfDepth + 0.5f;
+                break;
+                
+            case 1: // Back wall (z = halfDepth)
+                targetPos.x = (static_cast<float>(rand()) / RAND_MAX * 2.0f - 1.0f) * (halfWidth - marginX);
+                targetPos.y = (static_cast<float>(rand()) / RAND_MAX * 2.0f - 1.0f) * (halfHeight - marginY);
+                targetPos.z = halfDepth - 0.5f;
+                break;
+                
+            case 2: // Left wall (x = -halfWidth)
+                targetPos.x = -halfWidth + 0.5f;
+                targetPos.y = (static_cast<float>(rand()) / RAND_MAX * 2.0f - 1.0f) * (halfHeight - marginY);
+                targetPos.z = (static_cast<float>(rand()) / RAND_MAX * 2.0f - 1.0f) * (halfDepth - marginX);
+                break;
+                
+            case 3: // Right wall (x = halfWidth)
+                targetPos.x = halfWidth - 0.5f;
+                targetPos.y = (static_cast<float>(rand()) / RAND_MAX * 2.0f - 1.0f) * (halfHeight - marginY);
+                targetPos.z = (static_cast<float>(rand()) / RAND_MAX * 2.0f - 1.0f) * (halfDepth - marginX);
+                break;
+        }
+        
+        // Proveri da li je meta u FOV-u kamere
+        glm::vec3 toTarget = glm::normalize(targetPos - cameraPos);
+        float dotProduct = glm::dot(toTarget, cameraFront);
+        
+        // Stroža provera FOV-a - ugao manji od 45 stepeni
+        // cos(45°) ? 0.707
+        if (dotProduct > 0.707f) {
+            // Dodatna provera - meta mora biti dovoljno blizu centralnom pravcu pogleda
+            // Projekcija na desnu i gornju osu
+            float rightOffset = glm::dot(toTarget, cameraRight);
+            float upOffset = glm::dot(toTarget, cameraUp);
+            
+            // Proveri da li je meta u "vidljivom pravougaoniku" FOV-a
+            // Ograni?enje na približno 45° FOV horizontalno i vertikalno
+            if (std::abs(rightOffset) < 0.5f && std::abs(upOffset) < 0.4f) {
+                foundValidPosition = true;
+                
+                std::cout << "Target spawned on wall " << wallChoice << " at: (" 
+                          << targetPos.x << ", " << targetPos.y << ", " << targetPos.z 
+                          << ") after " << attempt << " attempts" << std::endl;
+            }
+        }
+    }
     
-    target.position = cameraPos + targetDirection * distance;
+    // Ako nismo našli poziciju u FOV-u posle svih pokušaja, ne spawuj metu
+    if (!foundValidPosition) {
+        std::cout << "Failed to spawn target in FOV after " << maxAttempts << " attempts" << std::endl;
+        return;
+    }
     
+    // Postavi poziciju i ostale parametre
+    target.position = targetPos;
     target.maxLifeTime = (2.0f + static_cast<float>(rand()) / RAND_MAX * 2.0f) * targetLifeTimeMultiplier;
     target.lifeTime = target.maxLifeTime;
     target.active = true;
-    
     target.texture = (rand() % 2 == 0) ? terroristTexture : counterTexture;
     
     targets.push_back(target);
-    
-    std::cout << "Target spawned at: (" << target.position.x << ", " << target.position.y << ", " << target.position.z << ")" << std::endl;
 }
 
 void AimTrainer::restart() {
@@ -305,9 +402,15 @@ void AimTrainer::updateDifficulty() {
 }
 
 void AimTrainer::render() {
-    for (const auto& target : targets) {
-        if (target.active) {
-            drawSphere3D(target.position, target.radius, target.texture);
+    if (!gameOver) {
+        // Draw room environment samo tokom igre
+        drawRoom();
+        
+        // Then draw 3D targets (cilindri umesto sfera)
+        for (const auto& target : targets) {
+            if (target.active) {
+                drawCylinder3D(target.position, target.radius, 0.15f, target.texture);
+            }
         }
     }
     
@@ -814,24 +917,346 @@ void AimTrainer::drawSphere3D(const glm::vec3& position, float radius, unsigned 
     glBindVertexArray(0);
 }
 
-bool AimTrainer::raySphereIntersection(const glm::vec3& rayOrigin, const glm::vec3& rayDir, 
-                                        const glm::vec3& sphereCenter, float sphereRadius) {
-    glm::vec3 oc = rayOrigin - sphereCenter;
-    float a = glm::dot(rayDir, rayDir);
-    float b = 2.0f * glm::dot(oc, rayDir);
-    float c = glm::dot(oc, oc) - sphereRadius * sphereRadius;
-    float discriminant = b * b - 4 * a * c;
-    return (discriminant >= 0);
+void AimTrainer::initCylinder() {
+    const int segments = 32;
+    float radius = 1.0f;
+    float halfDepth = 0.05f;
+    
+    std::vector<float> vertices;
+    std::vector<unsigned int> indices;
+    
+    // Front face - centar kruga
+    vertices.insert(vertices.end(), {0.0f, 0.0f, halfDepth, 0.0f, 0.0f, 1.0f, 0.5f, 0.5f});
+    
+    // Back face - centar kruga
+    int backCenterIndex = 1;
+    vertices.insert(vertices.end(), {0.0f, 0.0f, -halfDepth, 0.0f, 0.0f, -1.0f, 0.5f, 0.5f});
+    
+    int frontStartIndex = 2;
+    
+    // Front face vertices - pravilno texture mapiranje za krug
+    for (int i = 0; i <= segments; i++) {
+        float theta = 2.0f * glm::pi<float>() * static_cast<float>(i) / static_cast<float>(segments);
+        float x = radius * std::cos(theta);
+        float y = radius * std::sin(theta);
+        
+        // Texture koordinate za krug (mapiranje od centra ka ivici)
+        float u = 0.5f + 0.5f * std::cos(theta);
+        float v = 0.5f + 0.5f * std::sin(theta);
+        
+        // Front face vertex
+        vertices.insert(vertices.end(), {x, y, halfDepth, 0.0f, 0.0f, 1.0f, u, v});
+    }
+    
+    int backStartIndex = frontStartIndex + segments + 1;
+    
+    // Back face vertices - iste texture koordinate
+    for (int i = 0; i <= segments; i++) {
+        float theta = 2.0f * glm::pi<float>() * static_cast<float>(i) / static_cast<float>(segments);
+        float x = radius * std::cos(theta);
+        float y = radius * std::sin(theta);
+        
+        float u = 0.5f + 0.5f * std::cos(theta);
+        float v = 0.5f + 0.5f * std::sin(theta);
+        
+        // Back face vertex
+        vertices.insert(vertices.end(), {x, y, -halfDepth, 0.0f, 0.0f, -1.0f, u, v});
+    }
+    
+    // Indices za front face
+    for (int i = 0; i < segments; i++) {
+        indices.push_back(0);
+        indices.push_back(frontStartIndex + i);
+        indices.push_back(frontStartIndex + i + 1);
+    }
+    
+    // Indices za back face (obrnuti winding)
+    for (int i = 0; i < segments; i++) {
+        indices.push_back(backCenterIndex);
+        indices.push_back(backStartIndex + i + 1);
+        indices.push_back(backStartIndex + i);
+    }
+    
+    // Side faces (tanki ivica - opciono, možemo ih izostaviti)
+    int sideStartIndex = backStartIndex + segments + 1;
+    for (int i = 0; i <= segments; i++) {
+        float theta = 2.0f * glm::pi<float>() * static_cast<float>(i) / static_cast<float>(segments);
+        float x = radius * std::cos(theta);
+        float y = radius * std::sin(theta);
+        
+        // Normala za ivicu pokazuje radijalno prema spolja
+        float nx = std::cos(theta);
+        float ny = std::sin(theta);
+        
+        float u = static_cast<float>(i) / static_cast<float>(segments);
+        
+        // Front edge vertex
+        vertices.insert(vertices.end(), {x, y, halfDepth, nx, ny, 0.0f, u, 0.0f});
+        // Back edge vertex
+        vertices.insert(vertices.end(), {x, y, -halfDepth, nx, ny, 0.0f, u, 1.0f});
+    }
+    
+    // Indices za side faces
+    for (int i = 0; i < segments; i++) {
+        int current = sideStartIndex + i * 2;
+        int next = sideStartIndex + (i + 1) * 2;
+        
+        indices.push_back(current);
+        indices.push_back(next);
+        indices.push_back(current + 1);
+        
+        indices.push_back(current + 1);
+        indices.push_back(next);
+        indices.push_back(next + 1);
+    }
+    
+    glGenVertexArrays(1, &cylinderVAO);
+    glGenBuffers(1, &cylinderVBO);
+    glGenBuffers(1, &cylinderEBO);
+    
+    glBindVertexArray(cylinderVAO);
+    
+    glBindBuffer(GL_ARRAY_BUFFER, cylinderVBO);
+    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_STATIC_DRAW);
+    
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, cylinderEBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
+    
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+    
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
+    
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+    glEnableVertexAttribArray(2);
+    
+    glBindVertexArray(0);
+    
+    std::cout << "Cylinder initialized with proper circular texture mapping!" << std::endl;
+}
+
+void AimTrainer::drawCylinder3D(const glm::vec3& position, float radius, float depth, unsigned int texture) {
+    glUseProgram(sphere3DShaderProgram);
+    
+    // Cilindar uvek gleda ka kameri (billboard effect)
+    glm::vec3 cameraPos = camera->getPosition();
+    glm::vec3 direction = glm::normalize(cameraPos - position);
+    
+    // Kalkuliši rotaciju da gleda prema kameri
+    glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
+    glm::vec3 right = glm::normalize(glm::cross(up, direction));
+    glm::vec3 newUp = glm::cross(direction, right);
+    
+    glm::mat4 model = glm::mat4(1.0f);
+    model = glm::translate(model, position);
+    
+    // Kreiraj rotation matrix da gleda ka kameri
+    glm::mat4 rotation = glm::mat4(1.0f);
+    rotation[0] = glm::vec4(right, 0.0f);
+    rotation[1] = glm::vec4(newUp, 0.0f);
+    rotation[2] = glm::vec4(direction, 0.0f);
+    
+    model = model * rotation;
+    model = glm::scale(model, glm::vec3(radius, radius, depth));
+    
+    glm::mat4 view = camera->getViewMatrix();
+    float aspect = static_cast<float>(windowWidth) / static_cast<float>(windowHeight);
+    glm::mat4 projection = camera->getProjectionMatrix(aspect);
+    
+    int modelLoc = glGetUniformLocation(sphere3DShaderProgram, "uModel");
+    int viewLoc = glGetUniformLocation(sphere3DShaderProgram, "uView");
+    int projLoc = glGetUniformLocation(sphere3DShaderProgram, "uProjection");
+    
+    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+    glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
+    glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
+    
+    glm::vec3 lightPos(0.0f, 4.0f, 0.0f);
+    int lightPosLoc = glGetUniformLocation(sphere3DShaderProgram, "uLightPos");
+    glUniform3fv(lightPosLoc, 1, glm::value_ptr(lightPos));
+    
+    int viewPosLoc = glGetUniformLocation(sphere3DShaderProgram, "uViewPos");
+    glUniform3fv(viewPosLoc, 1, glm::value_ptr(camera->getPosition()));
+    
+    float currentTime = static_cast<float>(glfwGetTime());
+    int timeLoc = glGetUniformLocation(sphere3DShaderProgram, "uTime");
+    glUniform1f(timeLoc, currentTime);
+    
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, texture);
+    int texLoc = glGetUniformLocation(sphere3DShaderProgram, "uTexture");
+    glUniform1i(texLoc, 0);
+    
+    glBindVertexArray(cylinderVAO);
+    // Front face (32 triangles) + Back face (32 triangles) + Side faces (32*2 triangles) = 32 + 32 + 64 = 128 triangles = 384 indices
+    glDrawElements(GL_TRIANGLES, 32 * 3 + 32 * 3 + 32 * 6, GL_UNSIGNED_INT, 0);
+    glBindVertexArray(0);
+}
+
+void AimTrainer::initRoom() {
+    float roomWidth = 20.0f;
+    float roomHeight = 10.0f;
+    float roomDepth = 20.0f;
+    
+    float halfWidth = roomWidth / 2.0f;
+    float halfHeight = roomHeight / 2.0f;
+    float halfDepth = roomDepth / 2.0f;
+    
+    float texScaleW = 4.0f;
+    float texScaleH = 2.0f;
+    float texScaleD = 4.0f;
+    
+    std::vector<float> vertices = {
+        // Prednji zid (0-3)
+        -halfWidth, -halfHeight, -halfDepth,  0.0f, 0.0f, 1.0f,  0.0f, 0.0f,
+         halfWidth, -halfHeight, -halfDepth,  0.0f, 0.0f, 1.0f,  texScaleW, 0.0f,
+         halfWidth,  halfHeight, -halfDepth,  0.0f, 0.0f, 1.0f,  texScaleW, texScaleH,
+        -halfWidth,  halfHeight, -halfDepth,  0.0f, 0.0f, 1.0f,  0.0f, texScaleH,
+        
+        // Zadnji zid (4-7)
+         halfWidth, -halfHeight, halfDepth,  0.0f, 0.0f, -1.0f,  0.0f, 0.0f,
+        -halfWidth, -halfHeight, halfDepth,  0.0f, 0.0f, -1.0f,  texScaleW, 0.0f,
+        -halfWidth,  halfHeight, halfDepth,  0.0f, 0.0f, -1.0f,  texScaleW, texScaleH,
+         halfWidth,  halfHeight, halfDepth,  0.0f, 0.0f, -1.0f,  0.0f, texScaleH,
+        
+        // Levi zid (8-11)
+        -halfWidth, -halfHeight, -halfDepth,  1.0f, 0.0f, 0.0f,  texScaleD, 0.0f,
+        -halfWidth,  halfHeight, -halfDepth,  1.0f, 0.0f, 0.0f,  texScaleD, texScaleH,
+        -halfWidth,  halfHeight,  halfDepth,  1.0f, 0.0f, 0.0f,  0.0f, texScaleH,
+        -halfWidth, -halfHeight,  halfDepth,  1.0f, 0.0f, 0.0f,  0.0f, 0.0f,
+        
+        // Desni zid (12-15)
+        halfWidth, -halfHeight, -halfDepth,  -1.0f, 0.0f, 0.0f,  0.0f, 0.0f,
+        halfWidth, -halfHeight,  halfDepth,  -1.0f, 0.0f, 0.0f,  texScaleD, 0.0f,
+        halfWidth,  halfHeight,  halfDepth,  -1.0f, 0.0f, 0.0f,  texScaleD, texScaleH,
+        halfWidth,  halfHeight, -halfDepth,  -1.0f, 0.0f, 0.0f,  0.0f, texScaleH,
+        
+        // Pod (16-19) - FIXED NORMAL to point UP
+        -halfWidth, -halfHeight, -halfDepth,  0.0f, 1.0f, 0.0f,  0.0f, 0.0f,
+         halfWidth, -halfHeight, -halfDepth,  0.0f, 1.0f, 0.0f,  texScaleW, 0.0f,
+         halfWidth, -halfHeight,  halfDepth,  0.0f, 1.0f, 0.0f,  texScaleW, texScaleD,
+        -halfWidth, -halfHeight,  halfDepth,  0.0f, 1.0f, 0.0f,  0.0f, texScaleD,
+        
+        // Plafon (20-23)
+        -halfWidth, halfHeight, -halfDepth,  0.0f, -1.0f, 0.0f,  0.0f, 0.0f,
+         halfWidth, halfHeight, -halfDepth,  0.0f, -1.0f, 0.0f,  texScaleW, 0.0f,
+         halfWidth, halfHeight,  halfDepth,  0.0f, -1.0f, 0.0f,  texScaleW, texScaleD,
+        -halfWidth, halfHeight,  halfDepth,  0.0f, -1.0f, 0.0f,  0.0f, texScaleD,
+    };
+    
+    std::vector<unsigned int> indices = {
+        // Prednji zid
+        0, 1, 2, 0, 2, 3,
+        // Zadnji zid
+        4, 5, 6, 4, 6, 7,
+        // Levi zid
+        8, 9, 10, 8, 10, 11,
+        // Desni zid
+        12, 13, 14, 12, 14, 15,
+        // Pod - REVERSED WINDING ORDER
+        16, 18, 17, 16, 19, 18,
+        // Plafon
+        20, 21, 22, 20, 22, 23
+    };
+    
+    glGenVertexArrays(1, &roomVAO);
+    glGenBuffers(1, &roomVBO);
+    glGenBuffers(1, &roomEBO);
+    
+    glBindVertexArray(roomVAO);
+    
+    glBindBuffer(GL_ARRAY_BUFFER, roomVBO);
+    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_STATIC_DRAW);
+    
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, roomEBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
+    
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+    
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
+    
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+    glEnableVertexAttribArray(2);
+    
+    glBindVertexArray(0);
+    
+    std::cout << "Room initialized with FIXED floor winding order!" << std::endl;
+}
+
+void AimTrainer::drawRoom() {
+    glUseProgram(roomShaderProgram);
+    
+    glm::mat4 view = camera->getViewMatrix();
+    float aspect = static_cast<float>(windowWidth) / static_cast<float>(windowHeight);
+    glm::mat4 projection = camera->getProjectionMatrix(aspect);
+    
+    int viewLoc = glGetUniformLocation(roomShaderProgram, "uView");
+    int projLoc = glGetUniformLocation(roomShaderProgram, "uProjection");
+    int modelLoc = glGetUniformLocation(roomShaderProgram, "uModel");
+    int wallColorLoc = glGetUniformLocation(roomShaderProgram, "uWallColor");
+    int useTextureLoc = glGetUniformLocation(roomShaderProgram, "uUseTexture");
+    int lightPosLoc = glGetUniformLocation(roomShaderProgram, "uLightPos");
+    int viewPosLoc = glGetUniformLocation(roomShaderProgram, "uViewPos");
+    int texLoc = glGetUniformLocation(roomShaderProgram, "uWallTexture");
+    
+    static bool debugPrinted = false;
+    if (!debugPrinted) {
+        std::cout << "=== Room Shader Uniforms ===" << std::endl;
+        std::cout << "Wall texture ID: " << wallTexture << std::endl;
+        std::cout << "Floor texture ID: " << floorTexture << std::endl;
+        std::cout << "Ceiling texture ID: " << ceilingTexture << std::endl;
+        debugPrinted = true;
+    }
+    
+    glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
+    glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
+    
+    glm::vec3 lightPos(0.0f, 4.0f, 0.0f);
+    glUniform3fv(lightPosLoc, 1, glm::value_ptr(lightPos));
+    glUniform3fv(viewPosLoc, 1, glm::value_ptr(camera->getPosition()));
+    
+    glm::mat4 model = glm::mat4(1.0f);
+    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+    
+    glBindVertexArray(roomVAO);
+    
+    // Svi zidovi - wall.png
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, wallTexture);
+    glUniform1i(texLoc, 0);
+    glm::vec3 wallColor(0.8f, 0.8f, 0.8f);
+    glUniform3fv(wallColorLoc, 1, glm::value_ptr(wallColor));
+    glUniform1i(useTextureLoc, 1);
+    
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void*)0);
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void*)(6 * sizeof(unsigned int)));
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void*)(12 * sizeof(unsigned int)));
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void*)(18 * sizeof(unsigned int)));
+    
+    // Pod - floor.jpg
+    glBindTexture(GL_TEXTURE_2D, floorTexture);
+    glUniform1i(texLoc, 0);
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void*)(24 * sizeof(unsigned int)));
+    
+    // Plafon - ceiling.png
+    glBindTexture(GL_TEXTURE_2D, ceilingTexture);
+    glUniform1i(texLoc, 0);
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void*)(30 * sizeof(unsigned int)));
+    
+    glBindVertexArray(0);
 }
 
 void AimTrainer::toggleDepthTest() {
     depthTestEnabled = !depthTestEnabled;
     if (depthTestEnabled) {
         glEnable(GL_DEPTH_TEST);
-        std::cout << "[RENDER] Depth Test: ENABLED" << std::endl;
+        std::cout << "[DEBUG] Depth Test: ON" << std::endl;
     } else {
         glDisable(GL_DEPTH_TEST);
-        std::cout << "[RENDER] Depth Test: DISABLED" << std::endl;
+        std::cout << "[DEBUG] Depth Test: OFF" << std::endl;
     }
 }
 
@@ -839,10 +1264,10 @@ void AimTrainer::toggleFaceCulling() {
     faceCullingEnabled = !faceCullingEnabled;
     if (faceCullingEnabled) {
         glEnable(GL_CULL_FACE);
-        std::cout << "[RENDER] Face Culling: ENABLED" << std::endl;
+        std::cout << "[DEBUG] Face Culling: ON" << std::endl;
     } else {
         glDisable(GL_CULL_FACE);
-        std::cout << "[RENDER] Face Culling: DISABLED" << std::endl;
+        std::cout << "[DEBUG] Face Culling: OFF" << std::endl;
     }
 }
 
@@ -850,4 +1275,15 @@ void AimTrainer::processMouseMovement(float xoffset, float yoffset) {
     if (!gameOver && camera) {
         camera->processMouseMovement(xoffset, yoffset);
     }
+}
+
+bool AimTrainer::raySphereIntersection(const glm::vec3& rayOrigin, const glm::vec3& rayDir, 
+                                        const glm::vec3& sphereCenter, float sphereRadius) {
+    glm::vec3 oc = rayOrigin - sphereCenter;
+    float a = glm::dot(rayDir, rayDir);
+    float b = 2.0f * glm::dot(oc, rayDir);
+    float c = glm::dot(oc, oc) - sphereRadius * sphereRadius;
+    float discriminant = b * b - 4 * a * c;
+    
+    return discriminant >= 0.0f;
 }

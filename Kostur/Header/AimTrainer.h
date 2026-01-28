@@ -37,10 +37,13 @@ private:
     unsigned int texturedCircleShaderProgram;
     unsigned int sphere3DShaderProgram;
     unsigned int gameOverShaderProgram;  // Dedicated Game Over shader
+    unsigned int roomShaderProgram;
     unsigned int VAO, VBO;
     unsigned int textVAO, textVBO;
     unsigned int textureVAO, textureVBO;
-    unsigned int sphereVAO, sphereVBO, sphereEBO;  // 3D sfera
+    unsigned int sphereVAO, sphereVBO, sphereEBO;
+    unsigned int cylinderVAO, cylinderVBO, cylinderEBO;
+    unsigned int roomVAO, roomVBO, roomEBO;
     unsigned int studentInfoTexture;
     unsigned int backgroundTexture;
     unsigned int terroristTexture;
@@ -49,6 +52,9 @@ private:
     unsigned int emptyHeartTexture;
     unsigned int akTexture;
     unsigned int uspTexture;
+    unsigned int wallTexture;
+    unsigned int floorTexture;
+    unsigned int ceilingTexture;
     TextRenderer* textRenderer;
     TextRenderer3D* textRenderer3D;
     Camera* camera;  // 3D kamera
@@ -89,10 +95,14 @@ private:
     bool gameOverPrintedOnce; // Flag za Game Over console output
     
     void initBuffers();
-    void initSphere();  // Kreiraj 3D sferu
+    void initSphere();
+    void initCylinder();
+    void initRoom();
     void spawnTarget();
     void updateDifficulty();
     void drawSphere3D(const glm::vec3& position, float radius, unsigned int texture);
+    void drawCylinder3D(const glm::vec3& position, float radius, float depth, unsigned int texture);
+    void drawRoom();
     void drawCircle(float x, float y, float radius, unsigned int texture);
     void drawRect(float x, float y, float width, float height, float r, float g, float b, float alpha = 1.0f);
     void drawTexture(float x, float y, float width, float height, unsigned int texture, float alpha = 1.0f);

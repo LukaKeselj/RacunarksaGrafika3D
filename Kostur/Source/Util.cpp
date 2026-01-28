@@ -75,7 +75,7 @@ unsigned int createShader(const char* vsSource, const char* fsSource)
     glAttachShader(program, vertexShader);
     glAttachShader(program, fragmentShader);
 
-    glLinkProgram(program); //Povezi ih u jedan objedinjeni sejder program
+    glLinkProgram(program); //Povezi ih u jedan objekat sejder programa
     glValidateProgram(program); //Izvrsi provjeru novopecenog programa
 
     int success;
@@ -121,8 +121,8 @@ unsigned loadImageToTexture(const char* filePath) {
         glGenTextures(1, &Texture);
         glBindTexture(GL_TEXTURE_2D, Texture);
         
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         

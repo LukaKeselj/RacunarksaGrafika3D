@@ -76,5 +76,13 @@
     <None Include="Shaders\gameover.frag" />
     <None Include="Shaders\text3d.vert" />
     <None Include="Shaders\text3d.frag" />
+    <None Include="Shaders\skybox.vert" />
+    <None Include="Shaders\skybox.frag" />
+    <None Include="Shaders\background.vert" />
+    <None Include="Shaders\background.frag" />
+    <None Include="Shaders\line3d.vert" />
+    <None Include="Shaders\line3d.frag" />
+    <None Include="Shaders\room.vert" />
+    <None Include="Shaders\room.frag" />
   </ItemGroup>
 </Project>
