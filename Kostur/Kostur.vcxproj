@@ -131,6 +131,7 @@
     <ClCompile Include="Source\Crosshair.cpp" />
     <ClCompile Include="Source\Main.cpp" />
     <ClCompile Include="Source\TextRenderer.cpp" />
+    <ClCompile Include="Source\TextRenderer3D.cpp" />
     <ClCompile Include="Source\Util.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -139,6 +140,7 @@
     <ClInclude Include="Header\Crosshair.h" />
     <ClInclude Include="Header\stb_image.h" />
     <ClInclude Include="Header\TextRenderer.h" />
+    <ClInclude Include="Header\TextRenderer3D.h" />
     <ClInclude Include="Header\Util.h" />
   </ItemGroup>
   <ItemGroup>
@@ -151,6 +153,8 @@
     <None Include="Shaders\rect.vert" />
     <None Include="Shaders\sphere3d.frag" />
     <None Include="Shaders\sphere3d.vert" />
+    <None Include="Shaders\text3d.frag" />
+    <None Include="Shaders\text3d.vert" />
     <None Include="Shaders\texture.frag" />
     <None Include="Shaders\texture.vert" />
     <None Include="Shaders\textured_circle.frag" />

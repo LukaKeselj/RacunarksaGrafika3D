@@ -33,6 +33,9 @@
     <ClCompile Include="Source\AimTrainer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Source\TextRenderer3D.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Header\stb_image.h">
@@ -53,6 +56,9 @@
     <ClInclude Include="Header\Camera.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Header\TextRenderer3D.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
@@ -68,5 +74,7 @@
     <None Include="Shaders\sphere3d.frag" />
     <None Include="Shaders\gameover.vert" />
     <None Include="Shaders\gameover.frag" />
+    <None Include="Shaders\text3d.vert" />
+    <None Include="Shaders\text3d.frag" />
   </ItemGroup>
 </Project>

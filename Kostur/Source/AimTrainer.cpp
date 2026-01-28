@@ -1,5 +1,6 @@
 #include "../Header/AimTrainer.h"
 #include "../Header/Util.h"
+#include "../Header/TextRenderer3D.h"
 #include <cmath>
 #include <cstdlib>
 #include <ctime>
@@ -14,7 +15,7 @@ AimTrainer::AimTrainer(int width, int height)
       targetLifeTimeMultiplier(1.0f), minTargetLifeTime(0.4f),
       windowWidth(width), windowHeight(height), hitCount(0), totalHitTime(0.0),
       lastHitTime(0.0), gameOverTime(0.0), survivalTime(0.0), avgHitSpeed(0.0),
-      textRenderer(nullptr), camera(nullptr), exitRequested(false), totalClicks(0),
+      textRenderer(nullptr), textRenderer3D(nullptr), camera(nullptr), exitRequested(false), totalClicks(0),
       fireMode(FireMode::USP), isMousePressed(false), lastShotTime(0.0), fireRate(0.1),
       depthTestEnabled(true), faceCullingEnabled(true), gameOverPrintedOnce(false)
 {
@@ -23,15 +24,25 @@ AimTrainer::AimTrainer(int width, int height)
     rectShaderProgram = createShader("Shaders/rect.vert", "Shaders/rect.frag");
     textureShaderProgram = createShader("Shaders/texture.vert", "Shaders/texture.frag");
     freetypeShaderProgram = createShader("Shaders/freetype.vert", "Shaders/freetype.frag");
+    text3DShaderProgram = createShader("Shaders/text3d.vert", "Shaders/text3d.frag");
     texturedCircleShaderProgram = createShader("Shaders/textured_circle.vert", "Shaders/textured_circle.frag");
     sphere3DShaderProgram = createShader("Shaders/sphere3d.vert", "Shaders/sphere3d.frag");
     gameOverShaderProgram = createShader("Shaders/gameover.vert", "Shaders/gameover.frag");
+    
+    std::cout << "3D Text Shader Program ID: " << text3DShaderProgram << std::endl;
     
     camera = new Camera(glm::vec3(0.0f, 0.0f, 3.0f));
     
     textRenderer = new TextRenderer(freetypeShaderProgram, windowWidth, windowHeight);
     if (!textRenderer->loadFont("C:/Windows/Fonts/arial.ttf", 48)) {
         std::cout << "Warning: Failed to load Arial font" << std::endl;
+    }
+    
+    textRenderer3D = new TextRenderer3D(text3DShaderProgram);
+    if (!textRenderer3D->loadFont("C:/Windows/Fonts/arial.ttf", 48)) {
+        std::cout << "Warning: Failed to load Arial font for 3D" << std::endl;
+    } else {
+        std::cout << "3D Text Renderer initialized successfully!" << std::endl;
     }
     
     studentInfoTexture = loadImageToTexture("Resources/indeks.png");
@@ -87,6 +98,7 @@ AimTrainer::~AimTrainer() {
     glDeleteProgram(rectShaderProgram);
     glDeleteProgram(textureShaderProgram);
     glDeleteProgram(freetypeShaderProgram);
+    glDeleteProgram(text3DShaderProgram);
     glDeleteProgram(texturedCircleShaderProgram);
     glDeleteProgram(sphere3DShaderProgram);
     glDeleteProgram(gameOverShaderProgram);
@@ -99,6 +111,7 @@ AimTrainer::~AimTrainer() {
     glDeleteTextures(1, &akTexture);
     glDeleteTextures(1, &uspTexture);
     if (textRenderer) delete textRenderer;
+    if (textRenderer3D) delete textRenderer3D;
     if (camera) delete camera;
 }
 
@@ -272,8 +285,12 @@ void AimTrainer::render() {
         }
     }
     
+    // Disable depth test for all 2D overlays
     glDisable(GL_DEPTH_TEST);
-
+    glDisable(GL_CULL_FACE);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    
     glUseProgram(rectShaderProgram);
     
     float projection[16] = {
@@ -290,9 +307,11 @@ void AimTrainer::render() {
         double currentTime = glfwGetTime();
         double elapsed = currentTime - startTime;
         
-        drawRect(10, 10, 700, 80, 0.0f, 0.0f, 0.0f);
-        drawRect(12, 12, 696, 76, 0.2f, 0.2f, 0.2f);
+        // Draw statistics panel background (upper left)
+        drawRect(10, 10, 700, 80, 0.0f, 0.0f, 0.0f, 0.7f);
+        drawRect(12, 12, 696, 76, 0.2f, 0.2f, 0.2f, 0.8f);
         
+        // Draw lives (hearts)
         for (int i = 0; i < maxLives; i++) {
             if (i < lives) {
                 drawTexture(20 + i * 35, 22, 28, 28, heartTexture);
@@ -301,6 +320,7 @@ void AimTrainer::render() {
             }
         }
         
+        // Time display
         int minutes = static_cast<int>(elapsed) / 60;
         int seconds = static_cast<int>(elapsed) % 60;
         int centiseconds = static_cast<int>((elapsed - static_cast<int>(elapsed)) * 100) % 100;
@@ -310,12 +330,14 @@ void AimTrainer::render() {
                 << std::setw(2) << seconds << ":" 
                 << std::setw(2) << centiseconds;
         
-        textRenderer->renderText(timeStr.str(), 130, 35, 0.6f, 1.0f, 1.0f, 1.0f);
+        textRenderer->renderText(timeStr.str(), 130, 35, 0.6f, 0.2f, 1.0f, 1.0f);
         
+        // Hits display
         std::stringstream statsStr;
         statsStr << "Hits: " << score << "/" << totalClicks;
         textRenderer->renderText(statsStr.str(), 330, 35, 0.5f, 0.4f, 1.0f, 0.4f);
         
+        // Average speed
         double avgSpeed = 0.0;
         if (hitCount > 0) {
             avgSpeed = totalHitTime / hitCount;
@@ -325,16 +347,19 @@ void AimTrainer::render() {
         speedStr << "Speed: " << std::fixed << std::setprecision(2) << avgSpeed << " s";
         textRenderer->renderText(speedStr.str(), 480, 35, 0.45f, 1.0f, 0.8f, 0.3f);
         
+        // Weapon mode
         std::string modeStr = (fireMode == FireMode::USP) ? "USP" : "AK-47";
         float modeR = (fireMode == FireMode::USP) ? 0.7f : 1.0f;
         float modeG = (fireMode == FireMode::USP) ? 0.7f : 0.5f;
         float modeB = (fireMode == FireMode::USP) ? 0.7f : 0.2f;
         textRenderer->renderText(modeStr, 630, 35, 0.4f, modeR, modeG, modeB);
         
+        // Debug info
         std::stringstream debugStr;
         debugStr << "Targets: " << targets.size();
         textRenderer->renderText(debugStr.str(), 20, 100, 0.5f, 1.0f, 1.0f, 0.0f);
         
+        // Console output
         float accuracy = 0.0f;
         if (totalClicks > 0) {
             accuracy = (static_cast<float>(score) / static_cast<float>(totalClicks)) * 100.0f;
@@ -345,6 +370,7 @@ void AimTrainer::render() {
                   << " | Pogodaka: " << score << "/" << totalClicks << " (" << std::fixed << std::setprecision(1) << accuracy << "%)"
                   << " | Avg Speed: " << avgSpeed << "s         \r" << std::flush;
         
+        // Student info (lower left)
         float infoWidth = 400.0f;
         float infoHeight = 200.0f;
         float infoX = 20;
@@ -355,6 +381,7 @@ void AimTrainer::render() {
         
         drawTexture(infoX, infoY, infoWidth, infoHeight, studentInfoTexture, 1.0f);
         
+        // Weapon display (lower right)
         float weaponWidth = 300.0f;
         float weaponHeight = 150.0f;
         float weaponX = windowWidth - weaponWidth - 20;
@@ -467,10 +494,12 @@ void AimTrainer::render() {
         }
     }
     
+    // Re-enable depth test if it was enabled
     if (depthTestEnabled) {
         glEnable(GL_DEPTH_TEST);
     }
     
+    // Draw crosshair (always on top, 2D overlay)
     if (!gameOver) {
         glDisable(GL_DEPTH_TEST);
         glDisable(GL_CULL_FACE);
@@ -495,10 +524,15 @@ void AimTrainer::render() {
         float crosshairThickness = 6.0f;
         float crosshairGap = 12.0f;
         
+        // Left line
         drawRect(centerX - crosshairSize - crosshairGap, centerY - crosshairThickness/2, crosshairSize, crosshairThickness, 0.0f, 1.0f, 0.0f, 1.0f);
+        // Right line
         drawRect(centerX + crosshairGap, centerY - crosshairThickness/2, crosshairSize, crosshairThickness, 0.0f, 1.0f, 0.0f, 1.0f);
+        // Top line
         drawRect(centerX - crosshairThickness/2, centerY - crosshairSize - crosshairGap, crosshairThickness, crosshairSize, 0.0f, 1.0f, 0.0f, 1.0f);
+        // Bottom line
         drawRect(centerX - crosshairThickness/2, centerY + crosshairGap, crosshairThickness, crosshairSize, 0.0f, 1.0f, 0.0f, 1.0f);
+        // Center dot
         drawRect(centerX - 4, centerY - 4, 8, 8, 1.0f, 0.0f, 0.0f, 1.0f);
         
         if (depthTestEnabled) glEnable(GL_DEPTH_TEST);

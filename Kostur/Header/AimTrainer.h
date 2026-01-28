@@ -6,6 +6,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include "TextRenderer.h"
+#include "TextRenderer3D.h"
 #include "Camera.h"
 
 struct Target {
@@ -32,6 +33,7 @@ private:
     unsigned int rectShaderProgram;
     unsigned int textureShaderProgram;
     unsigned int freetypeShaderProgram;
+    unsigned int text3DShaderProgram;
     unsigned int texturedCircleShaderProgram;
     unsigned int sphere3DShaderProgram;
     unsigned int gameOverShaderProgram;  // Dedicated Game Over shader
@@ -48,6 +50,7 @@ private:
     unsigned int akTexture;
     unsigned int uspTexture;
     TextRenderer* textRenderer;
+    TextRenderer3D* textRenderer3D;
     Camera* camera;  // 3D kamera
     
     std::vector<Target> targets;
