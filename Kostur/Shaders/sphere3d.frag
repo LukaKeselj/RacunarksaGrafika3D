@@ -20,8 +20,8 @@ void main()
     if (texColor.a < 0.1)
         discard;
     
-    // Ambient lighting - malo ja?e da mete budu vidljive
-    vec3 ambient = 0.6 * vec3(1.0);
+    // POVE?AN ambient za svjetliju sobu
+    vec3 ambient = 0.5 * vec3(1.0);  // Bilo 0.3, sada 0.5
     
     // Diffuse lighting
     vec3 norm = normalize(Normal);
@@ -32,8 +32,12 @@ void main()
     // Specular lighting
     vec3 viewDir = normalize(uViewPos - FragPos);
     vec3 reflectDir = reflect(-lightDir, norm);
-    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 16.0);
-    vec3 specular = 0.3 * spec * vec3(1.0);
+    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32.0); // Pove?an shininess
+    vec3 specular = 0.5 * spec * vec3(1.0);
+    
+    // Soft shadows - BLAŽIJA attenuation za svjetliju sobu
+    float distance = length(uLightPos - FragPos);
+    float attenuation = 1.0 / (1.0 + 0.045 * distance + 0.0075 * distance * distance); // Smanjena attenuation
     
     // Pulsating glow effect - samo blagi efekat
     float pulse = 0.5 + 0.5 * sin(uTime * 2.0);
@@ -43,6 +47,10 @@ void main()
     float edgeFactor = 1.0 - abs(dot(norm, viewDir));
     edgeFactor = pow(edgeFactor, 2.0);
     vec3 glow = glowColor * edgeFactor * pulse * 0.15;
+    
+    // Primijeni attenuation (soft shadows)
+    diffuse *= attenuation;
+    specular *= attenuation;
     
     // Combine sve
     vec3 result = (ambient + diffuse + specular) * texColor.rgb + glow;
