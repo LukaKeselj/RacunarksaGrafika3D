@@ -50,12 +50,6 @@
     <ClInclude Include="Header\Camera.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Header\cgltf.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Header\GLBLoader.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Header\OBJLoader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -70,15 +64,9 @@
     <None Include="Shaders\rect.frag" />
     <None Include="Shaders\sphere3d.vert" />
     <None Include="Shaders\sphere3d.frag" />
-    <None Include="Shaders\line3d.vert" />
-    <None Include="Shaders\line3d.frag" />
     <None Include="Shaders\room.vert" />
     <None Include="Shaders\room.frag" />
     <None Include="Shaders\light.vert" />
     <None Include="Shaders\light.frag" />
-    <None Include="Shaders\simple.vert" />
-    <None Include="Shaders\simple.frag" />
-    <None Include="Shaders\debug.vert" />
-    <None Include="Shaders\debug.frag" />
   </ItemGroup>
 </Project>
