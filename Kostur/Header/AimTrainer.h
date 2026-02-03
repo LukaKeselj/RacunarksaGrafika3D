@@ -7,6 +7,7 @@
 #include <glm/gtc/type_ptr.hpp>
 #include "TextRenderer.h"
 #include "Camera.h"
+#include "OBJLoader.h"
 
 struct Target {
     glm::vec3 position;
@@ -22,6 +23,14 @@ struct Button {
     float width, height;
 };
 
+struct WallWeapon {
+    glm::vec3 position;
+    glm::vec3 rotation;
+    glm::vec3 scale;
+    OBJMesh mesh;
+    bool isAK;
+};
+
 enum class FireMode {
     USP,
     AK47
@@ -35,6 +44,7 @@ private:
     unsigned int cylinderShaderProgram;
     unsigned int roomShaderProgram;
     unsigned int lightShaderProgram;
+    unsigned int weaponShaderProgram;
     unsigned int VAO, VBO;
     unsigned int textVAO, textVBO;
     unsigned int textureVAO, textureVBO;
@@ -55,6 +65,7 @@ private:
     Camera* camera;
 
     std::vector<Target> targets;
+    std::vector<WallWeapon> wallWeapons;
     Button restartButton;
     Button exitButton;
     int score;
@@ -93,16 +104,21 @@ private:
     void initCylinder();
     void initRoom();
     void initLight();
+    void initWallWeapons();
     void spawnTarget();
     void updateDifficulty();
     void drawCylinder3D(const glm::vec3& position, float radius, float depth, unsigned int texture);
     void drawRoom();
     void drawLight();
+    void drawWallWeapons();
+    void drawWeaponMesh(const WallWeapon& weapon);
     void drawRect(float x, float y, float width, float height, float r, float g, float b, float alpha = 1.0f);
     void drawTexture(float x, float y, float width, float height, unsigned int texture, float alpha = 1.0f);
     bool isPointInRect(float px, float py, float rx, float ry, float rw, float rh);
     bool raySphereIntersection(const glm::vec3& rayOrigin, const glm::vec3& rayDir,
                                 const glm::vec3& sphereCenter, float sphereRadius);
+    bool rayAABBIntersection(const glm::vec3& rayOrigin, const glm::vec3& rayDir,
+                              const glm::vec3& boxMin, const glm::vec3& boxMax);
 
 public:
     AimTrainer(int width, int height);

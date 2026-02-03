@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -34,7 +34,8 @@ public:
            float startPitch = 0.0f);
     
     glm::mat4 getViewMatrix() const;
-    glm::mat4 getProjectionMatrix(float aspect, float nearPlane = 0.1f, float farPlane = 100.0f) const;
+    glm::mat4 getProjectionMatrix(float aspect) const;  // NOVI overload
+    glm::mat4 getProjectionMatrix(float aspect, float nearPlane, float farPlane) const;  // Postojeći
     
     void processKeyboard(CameraMovement direction, float deltaTime);
     void processMouseMovement(float xoffset, float yoffset, bool constrainPitch = true);

@@ -30,6 +30,9 @@
     <ClCompile Include="Source\AimTrainer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Source\OBJLoader.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Header\stb_image.h">
@@ -45,6 +48,15 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Header\Camera.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Header\cgltf.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Header\GLBLoader.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Header\OBJLoader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -64,5 +76,9 @@
     <None Include="Shaders\room.frag" />
     <None Include="Shaders\light.vert" />
     <None Include="Shaders\light.frag" />
+    <None Include="Shaders\simple.vert" />
+    <None Include="Shaders\simple.frag" />
+    <None Include="Shaders\debug.vert" />
+    <None Include="Shaders\debug.frag" />
   </ItemGroup>
 </Project>

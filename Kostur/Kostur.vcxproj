@@ -129,18 +129,24 @@
     <ClCompile Include="Source\AimTrainer.cpp" />
     <ClCompile Include="Source\Camera.cpp" />
     <ClCompile Include="Source\Main.cpp" />
+    <ClCompile Include="Source\OBJLoader.cpp" />
     <ClCompile Include="Source\TextRenderer.cpp" />
     <ClCompile Include="Source\Util.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Header\AimTrainer.h" />
     <ClInclude Include="Header\Camera.h" />
+    <ClInclude Include="Header\cgltf.h" />
+    <ClInclude Include="Header\GLBLoader.h" />
+    <ClInclude Include="Header\OBJLoader.h" />
     <ClInclude Include="Header\stb_image.h" />
     <ClInclude Include="Header\TextRenderer.h" />
     <ClInclude Include="Header\Util.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
+    <None Include="Shaders\debug.frag" />
+    <None Include="Shaders\debug.vert" />
     <None Include="Shaders\freetype.frag" />
     <None Include="Shaders\freetype.vert" />
     <None Include="Shaders\light.frag" />
@@ -151,6 +157,8 @@
     <None Include="Shaders\rect.vert" />
     <None Include="Shaders\room.frag" />
     <None Include="Shaders\room.vert" />
+    <None Include="Shaders\simple.frag" />
+    <None Include="Shaders\simple.vert" />
     <None Include="Shaders\sphere3d.frag" />
     <None Include="Shaders\sphere3d.vert" />
     <None Include="Shaders\texture.frag" />
