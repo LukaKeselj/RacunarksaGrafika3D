@@ -79,6 +79,8 @@ AimTrainer::AimTrainer(int width, int height)
     std::cout << "Controls:" << std::endl;
     std::cout << "  1 - AK-47 (Full-Auto)" << std::endl;
     std::cout << "  2 - USP-S (Semi-Auto)" << std::endl;
+    std::cout << "  D - Toggle Depth Test (debugging)" << std::endl;
+    std::cout << "  F - Toggle Face Culling (debugging)" << std::endl;
     std::cout << "  R - Restart (when game over)" << std::endl;
     std::cout << "  ESC - Exit" << std::endl;
 }
@@ -1284,9 +1286,11 @@ void AimTrainer::toggleDepthTest() {
     depthTestEnabled = !depthTestEnabled;
     if (depthTestEnabled) {
         glEnable(GL_DEPTH_TEST);
+        std::cout << "\n[DEPTH TEST] ✓ ENABLED - Pravilna dubina objekata" << std::endl;
     }
     else {
         glDisable(GL_DEPTH_TEST);
+        std::cout << "\n[DEPTH TEST] ✗ DISABLED - Mozes vidjeti rendering bugove!" << std::endl;
     }
 }
 
@@ -1294,9 +1298,11 @@ void AimTrainer::toggleFaceCulling() {
     faceCullingEnabled = !faceCullingEnabled;
     if (faceCullingEnabled) {
         glEnable(GL_CULL_FACE);
+        std::cout << "\n[FACE CULLING] ✓ ENABLED - Samo prednje strane su vidljive" << std::endl;
     }
     else {
         glDisable(GL_CULL_FACE);
+        std::cout << "\n[FACE CULLING] ✗ DISABLED - Obje strane su vidljive (slower)" << std::endl;
     }
 }
 

@@ -100,11 +100,27 @@ private:
     float recoilAmount;
     float recoilRecoverySpeed;
 
+    // PERFORMANCE OPTIMIZATION: Cached uniform locations
+    int rectProjLoc, rectColorLoc, rectAlphaLoc;
+    int textureProjLoc, textureAlphaLoc, textureTexLoc;
+    int cylinderModelLoc, cylinderViewLoc, cylinderProjLoc, cylinderLightPosLoc, cylinderViewPosLoc, cylinderTimeLoc, cylinderTexLoc;
+    int roomViewLoc, roomProjLoc, roomModelLoc, roomWallColorLoc, roomUseTextureLoc, roomLightPosLoc, roomViewPosLoc, roomTexLoc;
+    int lightModelLoc, lightViewLoc, lightProjLoc, lightColorLoc, lightIntensityLoc;
+    int weaponModelLoc, weaponViewLoc, weaponProjLoc, weaponLightPosLoc, weaponViewPosLoc, weaponTimeLoc, weaponTexLoc;
+
+    // PERFORMANCE OPTIMIZATION: Cached projection matrix
+    float orthoProjection[16];
+
+    // PERFORMANCE OPTIMIZATION: Shared light position (const member instead of constexpr)
+    const glm::vec3 lightPosition;
+
     void initBuffers();
     void initCylinder();
     void initRoom();
     void initLight();
     void initWallWeapons();
+    void cacheUniformLocations();
+    void updateProjectionMatrix();
     void spawnTarget();
     void updateDifficulty();
     void drawCylinder3D(const glm::vec3& position, float radius, float depth, unsigned int texture);
